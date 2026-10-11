@@ -4602,3 +4602,13 @@ def test_doctor_fix_names_maintenance_due_after_it_fixes_the_knobs(tmp_path, mon
         iirc.main(["doctor", "--fix"])
     assert iirc.CONFIG_ERROR is None
     assert "run-maintenance is due: no run in the last 30 days, 5 sessions" in capsys.readouterr().out
+
+
+def test_init_leaves_a_settings_file_it_did_not_write_unstaged(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.setattr(iirc.shutil, "which", lambda name: None)
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / ".claude").mkdir(); (tmp_path / ".claude" / "settings.json").write_text("{}\n")
+    iirc.main(["init"])
+    staged = _git(tmp_path, "diff", "--cached", "--name-only")
+    assert ".iirc/index.md" in staged and ".claude/settings.json" not in staged

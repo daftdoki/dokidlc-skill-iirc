@@ -2719,12 +2719,14 @@ def cmd_init(args: argparse.Namespace) -> None:
         if current and current.group(0).strip() != wanted:
             claude_md.write_text(text[:current.start()] + wanted + "\n" + text[current.end():])
             made.append("CLAUDE.md paragraph refreshed")
+    stage = [rel, "CLAUDE.md"]
     settings = ROOT / ".claude" / "settings.json"
-    if not settings.exists():
+    if not settings.exists():   # a settings file the person wrote is theirs to stage
         settings.parent.mkdir(parents=True, exist_ok=True)
         settings.write_text(json.dumps(PROJECT_SETTINGS, indent=2) + "\n")
         made.append(".claude/settings.json")
-    git_add([rel, "CLAUDE.md", ".claude/settings.json"])
+        stage.append(".claude/settings.json")
+    git_add(stage)
     print("initialized: " + ", ".join(made) if made else "already initialized; nothing changed")
     for ok, label, fix in git_checks():
         if not ok:
