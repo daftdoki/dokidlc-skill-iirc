@@ -101,7 +101,7 @@ const DEMO_HEALTH: IircHealth = {
 const DEMO_DOCTOR_RE = /^demo\s+doctor$/
 const DEMO_DOCTOR = [
   'ok  .claude/iirc.toml loads, so the hooks run',
-  'ok  suggest-pages finished inside the hook\'s 5 s limit in the last 7 days',
+  'ok  suggest-pages finished inside the hook\'s 5 s limit in the last 7 days and since the last run',
   'ok  uv on PATH',
   'FAIL memoryfield-tool at 3e447e1  (iirc doctor --fix)',
   'ok  embedding endpoint http://127.0.0.1:11434 answers within 2 s (serving nomic-embed-text, 768 wide)',

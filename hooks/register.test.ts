@@ -487,7 +487,7 @@ test('a config error reads as hooks off, and a timed-out recall turns the line y
   const c = { reads: 1, writes: 0, suggested: 2, used: 1, missed: [], match: { all: null, read: null, unread: null }, timeouts: 2 }
   expect(liveStatus(ok, c).level).toBe('warn')
   expect(statusText(ok, c)).toBe('iirc: [9] pages · [1/2] used · [1] reads · [0] writes · [2] timed out · run /iirc run-maintenance')
-  const brief = parseBrief('iirc: 9 pages, semantic via 127.0.0.1:11434. Maintenance is due (3 suggestion lookups timed out in the last 7 days); run /iirc run-maintenance.')!
+  const brief = parseBrief('iirc: 9 pages, semantic via 127.0.0.1:11434. Maintenance is due (3 suggestion lookups timed out in the last 7 days and since the last run); run /iirc run-maintenance.')!
   expect(brief.status.level).toBe('warn')
   expect(brief.status.fix).toBe('/iirc run-maintenance')
 })

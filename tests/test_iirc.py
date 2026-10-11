@@ -3926,7 +3926,7 @@ def test_maintenance_due_sooner_for_each_reason(tmp_path, monkeypatch):
     _waiting(10)
     assert _due() == []                                                 # a note for run-maintenance, not a reason
     _log([("timeout", "s0", 3), ("timeout", "s1", -2 / 86400)])         # the first came before the run
-    assert _due() == ["1 suggestion lookup timed out in the last 7 days"]
+    assert _due() == ["1 suggestion lookup timed out in the last 7 days and since the last run"]
 
 
 def _no_host(monkeypatch):
@@ -4046,7 +4046,7 @@ def test_brief_says_maintenance_is_due_in_one_sentence(tmp_path, monkeypatch, ca
     iirc.main(["doctor", "--brief"])
     out = capsys.readouterr().out
     assert ("Maintenance is due (no run in the last 30 days, 5 sessions; 1 suspect page (cites.md); "
-            "1 suggestion lookup timed out in the last 7 days); run /iirc run-maintenance.") in out
+            "1 suggestion lookup timed out in the last 7 days and since the last run); run /iirc run-maintenance.") in out
     assert "suspect:" not in out and "iirc doctor names the cause" not in out
 
 
@@ -4451,7 +4451,7 @@ def test_run_maintenance_clears_the_timeouts_it_reported(tmp_path, monkeypatch, 
     monkeypatch.setattr(iirc, "setup_checks", lambda fix_it, report, counts: True)
     _waiting(10)
     _log([("timeout", "s1", 1), ("timeout", "s2", 2), ("timeout", "s9", 9)])   # the last is past the 7 days
-    assert _due() == ["2 suggestion lookups timed out in the last 7 days"]
+    assert _due() == ["2 suggestion lookups timed out in the last 7 days and since the last run"]
     iirc.main(["run-maintenance"])
     left = capsys.readouterr().out
     assert "timed out" in left and "10 or more sessions waiting" in left[left.index("Left to decide:"):]

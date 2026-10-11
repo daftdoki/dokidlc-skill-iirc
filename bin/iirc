@@ -3611,7 +3611,7 @@ def setup_checks(fix_it: bool, report, counts: dict) -> bool:
         return False
     report(f"{STORE_CONFIG} loads, so the hooks run", True)
     timeouts = counts.get("timeouts", 0)
-    report(f"suggest-pages finished inside the hook's {RECALL_HOOK_TIMEOUT} s limit in the last {TIMEOUT_DAYS} days" + (f" ({timeouts} timed out)" if timeouts else ""),
+    report(f"suggest-pages finished inside the hook's {RECALL_HOOK_TIMEOUT} s limit {TIMEOUT_SPAN}" + (f" ({timeouts} timed out)" if timeouts else ""),
            timeouts == 0, TIMEOUT_FIX, kind="timeouts")
 
     if not report("uv on PATH", shutil.which("uv") is not None, "install uv: https://docs.astral.sh/uv/"):
@@ -4564,7 +4564,8 @@ MAINTENANCE_DAYS = 7        # about weekly: suspect pages and findings stay few 
 MAINTENANCE_SESSIONS = 5    # a week with fewer sessions than this changed too little to be worth a run
 WAITING_SESSIONS = 10       # sessions waiting to be judged before a tuning pass, which is long, is worth offering
 NETWORK_CHECK_DAYS = 30     # URL refs change slowly, and the check contacts every one: offer it about once a month
-TIMEOUT_DAYS = 7            # the window doctor counts suggestion lookups that timed out in
+TIMEOUT_DAYS = 7            # the window doctor counts suggestion lookups that timed out in, from the last run at the earliest
+TIMEOUT_SPAN = f"in the last {TIMEOUT_DAYS} days and since the last run"
 DUE_WINDOW_DAYS = 30        # the log the due check reads: past the 7-day rule, and short enough for the session start
 
 
@@ -4623,7 +4624,7 @@ def upkeep_items(c: dict) -> list[Upkeep]:
         items.append(Upkeep("suspect", f"{plural(len(suspects), 'suspect page')} ({', '.join(suspects[:3])}{', ...' if len(suspects) > 3 else ''})",
                             "verify, fix, or delete each", True))
     if c.get("timeouts"):
-        items.append(Upkeep("timeouts", f"{plural(c['timeouts'], 'suggestion lookup')} timed out in the last {TIMEOUT_DAYS} days", TIMEOUT_FIX, True))
+        items.append(Upkeep("timeouts", f"{plural(c['timeouts'], 'suggestion lookup')} timed out {TIMEOUT_SPAN}", TIMEOUT_FIX, True))
     if c.get("pairs"):
         items.append(Upkeep("pairs", plural(len(c["pairs"]), "near-duplicate pair"), "merge each, or link one page to the other, by the skill's rule 2", True))
     if c.get("findings"):
