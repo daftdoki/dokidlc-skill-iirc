@@ -3896,7 +3896,8 @@ def _waiting(n):
 
 def _due(**counts):
     """The due reasons for the log's counts plus what a caller measured."""
-    return iirc.maintenance_due({**iirc.logged_counts(), **counts})
+    pages = sum(len(iirc.list_pages(s.dir)) for s in iirc.live_stores())
+    return iirc.maintenance_due({**iirc.logged_counts(), "pages": pages, **counts})
 
 
 def test_maintenance_due_after_a_week_and_five_sessions(tmp_path, monkeypatch):

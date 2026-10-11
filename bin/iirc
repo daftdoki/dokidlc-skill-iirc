@@ -3692,7 +3692,8 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         # for the /iirc card: trust and store state as JSON, no host probe and no pull
         stores = [(s, list_pages(s.dir), unpushed(s)) for s in live_stores()]
         suspects = suspect_pages([p for _, ps, _ in stores for p in ps])
-        counts = {**logged_counts(), "suspects": suspects, "ahead": sum(a for _, _, a in stores), "pairs": close_pairs(PAIR_BUDGET)}
+        counts = {**logged_counts(), "pages": sum(len(ps) for _, ps, _ in stores), "suspects": suspects,
+                  "ahead": sum(a for _, _, a in stores), "pairs": close_pairs(PAIR_BUDGET)}
         print(json.dumps({
             "suspect": suspects,
             "stores": [{"name": s.name, "kind": s.kind, "pages": len(ps), "uncommitted": uncommitted(s), "unpushed": a} for s, ps, a in stores],
@@ -3764,7 +3765,7 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         if scan > SCAN_BUDGET:
             parts.append(f"The start scan took {scan:.1f} s over {cited} cited file{'' if cited == 1 else 's'}, past the {SCAN_BUDGET:g} s budget; tell the creator.")
         try:   # a hook must never fail the session start
-            due = maintenance_due({**logged_counts(), "suspects": suspects, "ahead": ahead, "pairs": close_pairs(PAIR_BUDGET)})
+            due = maintenance_due({**logged_counts(), "pages": n, "suspects": suspects, "ahead": ahead, "pairs": close_pairs(PAIR_BUDGET)})
         except Exception:
             due = []
         if due and hook != "SubagentStart":
@@ -4577,8 +4578,8 @@ def plural(n: int, word: str, many: str | None = None) -> str:
 
 def logged_counts(waiting_limit: int | None = WAITING_SESSIONS) -> dict:
     """What maintenance counts from the log, in one read of its last DUE_WINDOW_DAYS: the last run and the sessions
-    since, timed-out lookups since both, the last URL check, sessions waiting to be judged, up to waiting_limit,
-    and the pages in the live stores."""
+    since, timed-out lookups since both, the last URL check, and sessions waiting to be judged, up to waiting_limit.
+    The caller adds what it measures beside the log, such as pages, the page count the 7-day rule needs."""
     now = time.time()
     rows = [r for r in read_log(days=DUE_WINDOW_DAYS) if r.get("repo") == str(ROOT)]
     at = lambda r: parse_ts(r.get("ts")) or 0
@@ -4590,7 +4591,6 @@ def logged_counts(waiting_limit: int | None = WAITING_SESSIONS) -> dict:
         "timeouts": sum(1 for r in rows if r["cmd"] == "timeout" and at(r) >= now - TIMEOUT_DAYS * 86400 and at(r) > (last or -math.inf)),
         "last_network": max((at(r) for r in rows if r["cmd"] == "doubt" and r.get("network")), default=None),
         "waiting": len(untuned_sessions(repo_sessions(rows), limit=waiting_limit)),
-        "pages": sum(len(list_pages(s.dir)) for s in live_stores()),
     }
 
 
@@ -4751,6 +4751,7 @@ def cmd_run_maintenance(args: argparse.Namespace) -> None:
     for d, first, second in pairs:
         print(f"  near-duplicate pair (distance {d:.3f}): {first} | {second}")
     pages = audit_pages()
+    counts["pages"] = len(pages)
     counts["findings"], skip = audit_findings(pages)
     print("audit:")
     with contextlib.redirect_stdout(io.StringIO()) as audit_out:
