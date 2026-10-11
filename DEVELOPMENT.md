@@ -45,8 +45,9 @@ the local loop runs.
 
 ## Search mode and embedding host
 
-Semantic search is on unless `semantic = false` in the setup file.
-`OLLAMA_HOST` exported always means semantic. The `[embedding]` table of
+Semantic search is on unless `semantic = false` in the setup file, and
+that choice wins over an exported `OLLAMA_HOST`, which only names the
+first host to try. The `[embedding]` table of
 the setup file names the backend (`ollama`, `openai`, or `onnx`) and the
 model; without it the model is nomic through ollama. The wrapper always
 points the tool at a closed port (`NO_EMBEDDING_HOST`), because the tool
