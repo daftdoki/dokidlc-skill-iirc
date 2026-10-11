@@ -4584,3 +4584,21 @@ def test_migrate_stops_on_a_config_the_knob_fix_cannot_repair(tmp_path, monkeypa
     assert ".claude/iirc.toml" in out and "pages were not rewritten" in out and "iirc migrate again" in out
     assert "Suggested commit" not in out
     assert "`memory doubt`" in (repo / ".iirc" / "page.md").read_text()
+
+
+def test_doctor_fix_names_maintenance_due_after_it_fixes_the_knobs(tmp_path, monkeypatch, capsys):
+    """doctor --fix repairs a flat [recall], reloads the stores, and counts their pages for the due line in the same run."""
+    field = _project(tmp_path, monkeypatch)
+    iirc.write_config_file({"semantic": False})
+    _page(field, "a.md")
+    (tmp_path / ".claude").mkdir(exist_ok=True)
+    (tmp_path / ".claude" / "iirc.toml").write_text("[recall]\nsemantic_only = 0.30\n")
+    iirc.set_root(tmp_path)
+    assert iirc.CONFIG_ERROR
+    monkeypatch.setattr(iirc, "installed_rev", lambda: iirc.read_pin()["tool_rev"])
+    monkeypatch.setattr(iirc, "install_tool", lambda pin: pytest.fail("doctor installed the tool"))
+    _log([("start", f"s{i}", 1) for i in range(5)])
+    with pytest.raises(SystemExit):
+        iirc.main(["doctor", "--fix"])
+    assert iirc.CONFIG_ERROR is None
+    assert "run-maintenance is due: no run in the last 30 days, 5 sessions" in capsys.readouterr().out

@@ -3794,7 +3794,9 @@ def cmd_doctor(args: argparse.Namespace) -> None:
     print(f"     index cache: {idx} (derived, never committed; rebuilt by `iirc rebuild-search-index`)")
     if not ok and not args.fix:
         print(FIX_HINT)
-    counts["suspects"] = suspect_pages([p for st in live_stores() for p in list_pages(st.dir)])
+    # after setup_checks: its --fix may have repaired the config and reloaded the stores
+    pages = [p for st in live_stores() for p in list_pages(st.dir)]
+    counts.update(pages=len(pages), suspects=suspect_pages(pages))
     due = [i for i in upkeep_items(counts) if i.due]
     if due:
         # the checks and notes above already name unpushed commits, timeouts, and near-duplicates
