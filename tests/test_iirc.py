@@ -416,7 +416,7 @@ def test_setup_writes_config(tmp_path, monkeypatch, capsys):
     assert iirc.read_config()["semantic"] is False and iirc.semantic_enabled() is False
     assert iirc.tool_env()["OLLAMA_HOST"] == iirc.NO_EMBEDDING_HOST
     monkeypatch.setenv("OLLAMA_HOST", "x:1")
-    assert iirc.semantic_enabled() is True
+    assert iirc.semantic_enabled() is False                             # the setup file's choice wins
     monkeypatch.delenv("OLLAMA_HOST")
     with pytest.raises(SystemExit):
         iirc.main(["set-search-backend", "--local", "--host", "x"])
@@ -4526,3 +4526,14 @@ def test_init_writes_project_settings_when_absent(tmp_path, monkeypatch, capsys)
     settings.write_text('{"enabledPlugins": {"other@x": true}}\n')
     iirc.main(["init"])
     assert settings.read_text() == '{"enabledPlugins": {"other@x": true}}\n'
+
+
+def test_substring_setup_wins_over_an_exported_ollama_host(tmp_path, monkeypatch, capsys):
+    """semantic = false from --substring holds even with OLLAMA_HOST exported, so the brief reports string search, not a broken host."""
+    _project(tmp_path, monkeypatch)
+    monkeypatch.setenv("OLLAMA_HOST", "http://127.0.0.1:9")
+    monkeypatch.setattr(iirc, "_RESOLVED", None)
+    iirc.main(["set-search-backend", "--substring"]); capsys.readouterr()
+    assert iirc.semantic_enabled() is False
+    out = _brief(["doctor", "--brief", "--hook"], monkeypatch, capsys)
+    assert "string search" in out and "to fix" not in out and "does not answer" not in out

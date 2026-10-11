@@ -167,9 +167,8 @@ def write_config_file(values: dict) -> Path:
 
 
 def semantic_enabled() -> bool:
-    """Semantic search is the default. String search is a fallback chosen with `iirc set-search-backend --substring`."""
-    if os.environ.get("OLLAMA_HOST"):
-        return True
+    """Semantic search is the default. String search is a fallback chosen with `iirc set-search-backend --substring`,
+    and that choice wins over an exported OLLAMA_HOST, which only names the first host to try."""
     return bool(read_config().get("semantic", True))
 
 
