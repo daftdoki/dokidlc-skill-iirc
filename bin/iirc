@@ -2685,6 +2685,7 @@ def check_format() -> None:
             print(f"iirc: migrated store {store.name} from format {found} to {FORMAT}", file=sys.stderr)
 
 
+SETTINGS_FILE = ".claude/settings.json"   # project settings, relative to ROOT, as STORE_CONFIG is
 # what INSTALL.md step 7 writes: a clone resolves the marketplace and enables the plugin from this file alone
 PROJECT_SETTINGS = {
     "extraKnownMarketplaces": {"dokidlc": {"source": {"source": "github", "repo": "daftdoki/dokidlc-plugins"}}},
@@ -2720,12 +2721,12 @@ def cmd_init(args: argparse.Namespace) -> None:
             claude_md.write_text(text[:current.start()] + wanted + "\n" + text[current.end():])
             made.append("CLAUDE.md paragraph refreshed")
     stage = [rel, "CLAUDE.md"]
-    settings = ROOT / ".claude" / "settings.json"
+    settings = ROOT / SETTINGS_FILE
     if not settings.exists():   # a settings file the person wrote is theirs to stage
         settings.parent.mkdir(parents=True, exist_ok=True)
         settings.write_text(json.dumps(PROJECT_SETTINGS, indent=2) + "\n")
-        made.append(".claude/settings.json")
-        stage.append(".claude/settings.json")
+        made.append(SETTINGS_FILE)
+        stage.append(SETTINGS_FILE)
     git_add(stage)
     print("initialized: " + ", ".join(made) if made else "already initialized; nothing changed")
     for ok, label, fix in git_checks():
@@ -2797,15 +2798,15 @@ def cmd_migrate(args: argparse.Namespace) -> None:
             claude_md.write_text(OLD_SECTION_RE.sub(lambda m: CLAUDE_MD_PARAGRAPH.strip("\n"), text, count=1))
             done.append("CLAUDE.md: the Memory section is now the IIRC section")
             staged.append("CLAUDE.md")
-    settings = ROOT / ".claude" / "settings.json"
+    settings = ROOT / SETTINGS_FILE
     if settings.is_file():
         data = json.loads(settings.read_text())
         plugins = data.get("enabledPlugins")
         if isinstance(plugins, dict) and "memory@dokidlc" in plugins:
             data["enabledPlugins"] = {("iirc@dokidlc" if k == "memory@dokidlc" else k): v for k, v in plugins.items()}
             settings.write_text(json.dumps(data, indent=2) + "\n")
-            done.append(".claude/settings.json: memory@dokidlc is now iirc@dokidlc")
-            staged.append(".claude/settings.json")
+            done.append(f"{SETTINGS_FILE}: memory@dokidlc is now iirc@dokidlc")
+            staged.append(SETTINGS_FILE)
     set_root(ROOT)
     if CONFIG_ERROR:
         # no store loads, so no page was rewritten; a commit now would record a half-done migration,
@@ -3005,7 +3006,7 @@ def persisted() -> tuple[str, ...]:
     """What must be committed in the project repository: the project store, the settings, CLAUDE.md."""
     ps = project_store()
     first = (str(ps.dir.relative_to(ROOT)),) if ps else ()
-    return first + (".claude/settings.json", "CLAUDE.md")
+    return first + (SETTINGS_FILE, "CLAUDE.md")
 
 
 def git_status_of(path: str) -> str:
@@ -3052,7 +3053,7 @@ def git_checks() -> list[tuple[bool, str, str]]:
     for path in paths:
         state = states[path]
         if state == "no-git":
-            return [(False, "this directory is a git repository", "git init, then commit .iirc/ and .claude/settings.json")]
+            return [(False, "this directory is a git repository", f"git init, then commit .iirc/ and {SETTINGS_FILE}")]
         label = {"tracked": f"{path} is committed", "untracked": f"{path} is not committed", "ignored": f"{path} is ignored by git", "missing": f"{path} does not exist"}[state]
         fix = {"tracked": "", "untracked": f"git add {path} && git commit", "ignored": f"remove {path} from .gitignore, then git add it", "missing": "iirc init"}[state]
         rows.append((state == "tracked", label, fix))
