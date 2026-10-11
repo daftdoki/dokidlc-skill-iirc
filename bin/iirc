@@ -3605,7 +3605,10 @@ def setup_checks(fix_it: bool, report, counts: dict) -> bool:
 
     model = active_model()
     up = False   # embeddings work, so --fix can reindex
-    if not semantic_enabled():
+    if not config_file().is_file():
+        # the creator has not chosen a backend; --fix must not install or pull for one they did not choose
+        report("search backend chosen on this machine", False, "not set up; run iirc set-search-backend")
+    elif not semantic_enabled():
         report("search mode: string, the fallback (iirc set-search-backend --local or --host URL switches to semantic)", True)
     elif model.backend == "onnx":
         up = report(f"{model.id} model files in {minilm_dir()} match their pinned sha256", minilm_files_ok(), "iirc set-search-backend --cpu")

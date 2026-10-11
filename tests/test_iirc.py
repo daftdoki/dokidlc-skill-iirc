@@ -4487,3 +4487,24 @@ def test_only_the_main_session_is_told_to_run_maintenance(tmp_path, monkeypatch,
         said[event] = out if out.startswith("iirc") else json.loads(out)["hookSpecificOutput"]["additionalContext"]
     assert "run /iirc run-maintenance" in said["SessionStart"]
     assert "iirc: 1 page" in said["SubagentStart"] and "maintenance" not in said["SubagentStart"].lower()
+
+
+def test_doctor_fix_before_setup_installs_and_pulls_nothing(tmp_path, monkeypatch, capsys):
+    """With no machine config, doctor names set-search-backend and leaves ollama alone, even with --fix."""
+    _project(tmp_path, monkeypatch)
+    shims = tmp_path / "shims"; shims.mkdir()
+    calls = tmp_path / "calls.log"
+    for name in ("brew", "ollama"):
+        (shims / name).write_text(f'#!/bin/sh\necho "{name} $*" >> "{calls}"\n'); (shims / name).chmod(0o755)
+    monkeypatch.setenv("PATH", f"{shims}:{os.environ['PATH']}")
+    monkeypatch.setattr(iirc.platform, "system", lambda: "Darwin")
+    _no_host(monkeypatch)
+    monkeypatch.setattr(iirc, "installed_rev", lambda: iirc.read_pin()["tool_rev"])
+    monkeypatch.setattr(iirc, "install_tool", lambda pin: pytest.fail("doctor installed the tool"))
+    monkeypatch.setattr(iirc.time, "sleep", lambda s: None)
+    assert not iirc.config_file().exists()
+    with pytest.raises(SystemExit):
+        iirc.main(["doctor", "--fix"])
+    out = capsys.readouterr().out
+    assert "not set up; run iirc set-search-backend" in out
+    assert not calls.exists(), calls.read_text()
