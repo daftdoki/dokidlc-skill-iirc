@@ -127,8 +127,10 @@ past 5 seconds, and one sentence when maintenance is due,
 are 7 days and 5 sessions since the last run, suspect pages, store
 commits not pushed, near-duplicate pairs (at the model's duplicate
 distance or closer, 0.07 for nomic, unless the pair has different kinds
-and one links the other with `[[name]]`), suggestion lines that timed
-out in the last 7 days, and 10 sessions waiting to be judged. After
+and one links the other with `[[name]]`), and suggestion lines that
+timed out in the last 7 days and since the last run. Sessions waiting
+to be judged are not a reason: run-maintenance offers tuning when 10
+wait, and only a tuning pass clears them. After
 a compaction in a session that wrote nothing, it adds:
 
 ```

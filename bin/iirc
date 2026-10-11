@@ -4549,7 +4549,7 @@ def plural(n: int, word: str, many: str | None = None) -> str:
 
 def logged_counts(waiting_limit: int | None = WAITING_SESSIONS) -> dict:
     """What maintenance counts from the log, in one read of its last DUE_WINDOW_DAYS: the last run and the sessions
-    since, timed-out lookups, the last URL check, and sessions waiting to be judged, up to waiting_limit."""
+    since, timed-out lookups since both, the last URL check, and sessions waiting to be judged, up to waiting_limit."""
     now = time.time()
     rows = [r for r in read_log(days=DUE_WINDOW_DAYS) if r.get("repo") == str(ROOT)]
     at = lambda r: parse_ts(r.get("ts")) or 0
@@ -4557,7 +4557,8 @@ def logged_counts(waiting_limit: int | None = WAITING_SESSIONS) -> dict:
     return {
         "last_run": last,
         "sessions": len({r.get("session") for r in rows if r["cmd"] == "start" and at(r) > (last or -math.inf)}),
-        "timeouts": sum(1 for r in rows if r["cmd"] == "timeout" and at(r) >= now - TIMEOUT_DAYS * 86400),
+        # since the last run too, so the run that reported them settles them
+        "timeouts": sum(1 for r in rows if r["cmd"] == "timeout" and at(r) >= now - TIMEOUT_DAYS * 86400 and at(r) > (last or -math.inf)),
         "last_network": max((at(r) for r in rows if r["cmd"] == "doubt" and r.get("network")), default=None),
         "waiting": len(untuned_sessions(repo_sessions(rows), limit=waiting_limit)),
     }
@@ -4604,7 +4605,8 @@ def upkeep_items(c: dict) -> list[Upkeep]:
         when = f"not checked in {NETWORK_CHECK_DAYS} days" if checked is None else f"last checked {int((now - checked) // 86400)} days ago"
         items.append(Upkeep("network", f"{network_counts(c['network'])}, {when}", "offer iirc find-suspect-pages --network, naming the URLs and checks it contacts", False))
     if c.get("waiting", 0) >= WAITING_SESSIONS:
-        items.append(Upkeep("waiting", f"{WAITING_SESSIONS} or more sessions waiting to be judged for tuning", "offer /iirc tune-suggestions, which is long", True))
+        # a note, not due: only a tuning pass judges them, so a run would leave maintenance due
+        items.append(Upkeep("waiting", f"{WAITING_SESSIONS} or more sessions waiting to be judged for tuning", "offer /iirc tune-suggestions, which is long", False))
     return items
 
 

@@ -3924,13 +3924,9 @@ def test_maintenance_due_sooner_for_each_reason(tmp_path, monkeypatch):
     assert _due(suspects=["a.md", "b.md"]) == ["2 suspect pages (a.md, b.md)"]
     assert _due(ahead=1) == ["1 store commit not pushed"]
     assert _due(pairs=[(0.01, "a.md", "b.md"), (0.02, "c.md", "d.md")]) == ["2 near-duplicate pairs"]
-    _waiting(9)
-    assert _due() == []
     _waiting(10)
-    assert _due() == ["10 or more sessions waiting to be judged for tuning"]
-    _log([("tuned", f"w{i}", 0, {"tuned": f"w{i}"}) for i in range(10)])
-    assert _due() == []
-    _log([("timeout", "s1", 3), ("timeout", "s2", 9)])                  # the second is past the 7 days
+    assert _due() == []                                                 # a note for run-maintenance, not a reason
+    _log([("timeout", "s0", 3), ("timeout", "s1", -2 / 86400)])         # the first came before the run
     assert _due() == ["1 suggestion lookup timed out in the last 7 days"]
 
 
@@ -4445,3 +4441,23 @@ def test_migrate_fixes_a_flat_recall_table_so_hooks_stay_on(tmp_path, monkeypatc
     assert ".claude/iirc.toml" in _git(repo, "diff", "--cached", "--name-only")
     iirc.write_config_file({"semantic": False})
     assert "hooks off" not in _brief(["doctor", "--brief", "--hook"], monkeypatch, capsys)
+
+
+def test_run_maintenance_clears_the_timeouts_it_reported(tmp_path, monkeypatch, capsys):
+    """Timeouts count since the last run, so a run settles them; untuned sessions are a note for run-maintenance, never due."""
+    field = _project(tmp_path, monkeypatch)
+    iirc.write_config_file({"semantic": False})
+    _page(field, "a.md"); _git(tmp_path, "add", ".iirc"); _git(tmp_path, "commit", "-qm", "page")
+    monkeypatch.setattr(iirc, "setup_checks", lambda fix_it, report, counts: True)
+    _waiting(10)
+    _log([("timeout", "s1", 1), ("timeout", "s2", 2), ("timeout", "s9", 9)])   # the last is past the 7 days
+    assert _due() == ["2 suggestion lookups timed out in the last 7 days"]
+    iirc.main(["run-maintenance"])
+    left = capsys.readouterr().out
+    assert "timed out" in left and "10 or more sessions waiting" in left[left.index("Left to decide:"):]
+    assert _due() == []
+    out = _brief(["doctor", "--brief", "--hook"], monkeypatch, capsys)
+    assert "Maintenance is due" not in out and "timed out" not in out
+    _log([("timeout", "s3", -2 / 86400)])                               # two seconds after the run
+    assert iirc.logged_counts()["timeouts"] == 1
+

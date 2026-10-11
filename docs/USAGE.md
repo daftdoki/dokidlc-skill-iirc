@@ -33,8 +33,9 @@ Run it about once a week while you use iirc; iirc tells you when it is
 due. Type `/iirc run-maintenance`, or say yes when the agent suggests
 it. It is due after 7 days and at least 5 sessions since the last run,
 or sooner when a page is suspect, a store commit is not pushed, a
-suggestion lookup timed out in the last 7 days, two pages are
-near-duplicates, or 10 sessions wait to be judged for tuning. The
+suggestion lookup timed out in the last 7 days and since the last run,
+or two pages are near-duplicates. When 10 sessions wait to be judged,
+the run offers tuning, but they do not make it due. The
 session-start line then says `Maintenance is due (REASONS)`, the line
 under the prompt ends with `· run /iirc run-maintenance`, and
 `iirc doctor` ends with `run-maintenance is due: REASONS`.
