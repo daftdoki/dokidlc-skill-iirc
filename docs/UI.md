@@ -156,7 +156,7 @@ doctor card from sample checks.
 - `/iirc <request>`, which goes to the skill, as do the commands that need
   a question first: `add-remote-store`, `init`, `write`, `delete`, and `approve-page-check`
 
-![The /iirc doctor card: all 13 checks pass, each listed](images/iirc-card-doctor.png)
+![The doctor card with sample checks from /iirc demo doctor: 1 of 13 failed, the failure with its fix, a near-duplicate note, and the 12 checks that passed](images/iirc-card-doctor.png)
 
 Neither card costs tokens: the plugin answers, and the skill does not load.
 
