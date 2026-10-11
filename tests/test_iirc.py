@@ -4470,3 +4470,20 @@ def test_maintenance_is_not_due_on_an_empty_store(tmp_path, monkeypatch):
     assert _due() == []
     _page(field, "a.md")
     assert _due() == ["no run in the last 30 days, 6 sessions"]
+
+
+def test_only_the_main_session_is_told_to_run_maintenance(tmp_path, monkeypatch, capsys):
+    """A subagent cannot run a slash command, so its start line leaves out the maintenance sentence."""
+    import io
+    field = _project(tmp_path, monkeypatch)
+    iirc.write_config_file({"semantic": False})
+    _page(field, "a.md")
+    _log([("start", f"s{i}", 1) for i in range(5)])
+    said = {}
+    for event in ("SessionStart", "SubagentStart"):
+        monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps({"hook_event_name": event, "session_id": "x"})))
+        iirc.main(["doctor", "--brief", "--hook"])
+        out = capsys.readouterr().out
+        said[event] = out if out.startswith("iirc") else json.loads(out)["hookSpecificOutput"]["additionalContext"]
+    assert "run /iirc run-maintenance" in said["SessionStart"]
+    assert "iirc: 1 page" in said["SubagentStart"] and "maintenance" not in said["SubagentStart"].lower()

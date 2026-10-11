@@ -3743,8 +3743,9 @@ def cmd_doctor(args: argparse.Namespace) -> None:
             due = maintenance_due({**logged_counts(), "suspects": suspects, "ahead": ahead, "pairs": close_pairs(PAIR_BUDGET)})
         except Exception:
             due = []
-        if due:
-            # one sentence for the person and the model; the skill walks through each reason
+        if due and hook != "SubagentStart":
+            # one sentence for the person and the model; the skill walks through each reason.
+            # A subagent cannot run a slash command, so it gets none.
             parts.append(f"Maintenance is due ({'; '.join(due)}); run /iirc run-maintenance.")
         if hook == "SessionStart":
             # the conditions this session's recall ran under, so an analysis compares like with like
