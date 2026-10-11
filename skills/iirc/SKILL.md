@@ -27,7 +27,7 @@ iirc set-search-backend [--local|--host URL|--openai URL|--cpu|--substring]
                                                   the embedding model and where it runs, or the string fallback; once per machine
 iirc migrate                                      move a repository and this machine from the memory plugin's layout
 iirc doctor --fix                                 install or repair prerequisites; clone missing remote stores
-iirc init                                         create .iirc/ and the CLAUDE.md paragraph
+iirc init                                         create .iirc/, the CLAUDE.md paragraph, and .claude/settings.json if absent
 iirc show-page-stores                             the stores, their page counts, and anything not committed or pushed
 iirc show-page-topics                             every topic with its page count
 iirc max-suggested-pages [N]                      how many pages the hook suggests at most (default 3); N sets it on this machine

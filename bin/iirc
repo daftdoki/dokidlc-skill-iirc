@@ -2685,6 +2685,13 @@ def check_format() -> None:
             print(f"iirc: migrated store {store.name} from format {found} to {FORMAT}", file=sys.stderr)
 
 
+# what INSTALL.md step 7 writes: a clone resolves the marketplace and enables the plugin from this file alone
+PROJECT_SETTINGS = {
+    "extraKnownMarketplaces": {"dokidlc": {"source": {"source": "github", "repo": "daftdoki/dokidlc-plugins"}}},
+    "enabledPlugins": {"iirc@dokidlc": True},
+}
+
+
 def cmd_init(args: argparse.Namespace) -> None:
     made = []
     store = project_store()
@@ -2712,7 +2719,12 @@ def cmd_init(args: argparse.Namespace) -> None:
         if current and current.group(0).strip() != wanted:
             claude_md.write_text(text[:current.start()] + wanted + "\n" + text[current.end():])
             made.append("CLAUDE.md paragraph refreshed")
-    git_add([rel, "CLAUDE.md"])
+    settings = ROOT / ".claude" / "settings.json"
+    if not settings.exists():
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps(PROJECT_SETTINGS, indent=2) + "\n")
+        made.append(".claude/settings.json")
+    git_add([rel, "CLAUDE.md", ".claude/settings.json"])
     print("initialized: " + ", ".join(made) if made else "already initialized; nothing changed")
     for ok, label, fix in git_checks():
         if not ok:
@@ -3033,7 +3045,7 @@ def git_checks() -> list[tuple[bool, str, str]]:
         if state == "no-git":
             return [(False, "this directory is a git repository", "git init, then commit .iirc/ and .claude/settings.json")]
         label = {"tracked": f"{path} is committed", "untracked": f"{path} is not committed", "ignored": f"{path} is ignored by git", "missing": f"{path} does not exist"}[state]
-        fix = {"tracked": "", "untracked": f"git add {path} && git commit", "ignored": f"remove {path} from .gitignore, then git add it", "missing": "iirc init" if path != ".claude/settings.json" else "enable the plugin in project settings so clones get it"}[state]
+        fix = {"tracked": "", "untracked": f"git add {path} && git commit", "ignored": f"remove {path} from .gitignore, then git add it", "missing": "iirc init"}[state]
         rows.append((state == "tracked", label, fix))
     return rows
 

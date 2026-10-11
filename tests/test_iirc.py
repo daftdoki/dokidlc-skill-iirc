@@ -359,9 +359,8 @@ def test_git_checks_and_init_staging(tmp_path, monkeypatch):
     iirc.main(["init"])
     states = {label: ok for ok, label, _ in iirc.git_checks()}
     assert states[".iirc is ignored by git"] is False
-    assert states[".claude/settings.json does not exist"] is False
+    assert states[".claude/settings.json is committed"] is True        # init wrote and staged it; ls-files counts the index
     (tmp_path / ".gitignore").write_text("")
-    (tmp_path / ".claude").mkdir(); (tmp_path / ".claude" / "settings.json").write_text("{}")
     iirc.git_add([".iirc", "CLAUDE.md", ".claude/settings.json"])
     subprocess.run(["git", "-C", str(tmp_path), "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"], check=True)
     assert all(ok for ok, _, _ in iirc.git_checks())
@@ -4508,3 +4507,22 @@ def test_doctor_fix_before_setup_installs_and_pulls_nothing(tmp_path, monkeypatc
     out = capsys.readouterr().out
     assert "not set up; run iirc set-search-backend" in out
     assert not calls.exists(), calls.read_text()
+
+
+def test_init_writes_project_settings_when_absent(tmp_path, monkeypatch, capsys):
+    """init writes INSTALL.md step 7's settings when the repository has none, and leaves an existing file alone."""
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.setattr(iirc.shutil, "which", lambda name: None)
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    iirc.set_root(tmp_path)
+    fixes = {label: fix for ok, label, fix in iirc.git_checks()}
+    assert fixes[".claude/settings.json does not exist"] == "iirc init"
+    iirc.main(["init"])
+    assert ".claude/settings.json" in capsys.readouterr().out
+    settings = tmp_path / ".claude" / "settings.json"
+    step7 = re.search(r"### 7\..*?```json\n(.*?)```", (ROOT / "INSTALL.md").read_text(), re.S)[1]
+    assert json.loads(settings.read_text()) == json.loads(step7)
+    assert ".claude/settings.json" in _git(tmp_path, "diff", "--cached", "--name-only")
+    settings.write_text('{"enabledPlugins": {"other@x": true}}\n')
+    iirc.main(["init"])
+    assert settings.read_text() == '{"enabledPlugins": {"other@x": true}}\n'
