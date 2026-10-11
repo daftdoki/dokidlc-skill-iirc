@@ -4502,6 +4502,8 @@ def test_doctor_fix_before_setup_installs_and_pulls_nothing(tmp_path, monkeypatc
     calls = tmp_path / "calls.log"
     for name in ("brew", "ollama"):
         (shims / name).write_text(f'#!/bin/sh\necho "{name} $*" >> "{calls}"\n'); (shims / name).chmod(0o755)
+    # an installed memoryfield-tool at the pin, so the run does not depend on the machine having one
+    (shims / "memoryfield-tool").write_text("#!/bin/sh\nexit 0\n"); (shims / "memoryfield-tool").chmod(0o755)
     monkeypatch.setenv("PATH", f"{shims}:{os.environ['PATH']}")
     monkeypatch.setattr(iirc.platform, "system", lambda: "Darwin")
     _no_host(monkeypatch)
@@ -4602,6 +4604,9 @@ def test_doctor_fix_names_maintenance_due_after_it_fixes_the_knobs(tmp_path, mon
     (tmp_path / ".claude" / "iirc.toml").write_text("[recall]\nsemantic_only = 0.30\n")
     iirc.set_root(tmp_path)
     assert iirc.CONFIG_ERROR
+    # an installed memoryfield-tool at the pin, so the run does not depend on the machine having one
+    real_which = iirc.shutil.which
+    monkeypatch.setattr(iirc.shutil, "which", lambda name: "/bin/true" if name == "memoryfield-tool" else real_which(name))
     monkeypatch.setattr(iirc, "installed_rev", lambda: iirc.read_pin()["tool_rev"])
     monkeypatch.setattr(iirc, "install_tool", lambda pin: pytest.fail("doctor installed the tool"))
     _log([("start", f"s{i}", 1) for i in range(5)])
