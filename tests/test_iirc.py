@@ -4421,3 +4421,27 @@ def test_guard_asks_before_verify_network():
         return json.loads(out)["hookSpecificOutput"]["permissionDecision"] if out.strip() else None
     assert decide("iirc verify net.md --network") == "ask"
     assert decide("iirc verify net.md") is None
+
+
+def test_migrate_fixes_a_flat_recall_table_so_hooks_stay_on(tmp_path, monkeypatch, capsys):
+    """A flat [recall] in the old memory.toml is moved by the knob fix during migrate, so the page rewrite runs and hooks stay on."""
+    monkeypatch.delenv("OLLAMA_HOST", raising=False)
+    repo = tmp_path / "repo"; repo.mkdir(); _repo(repo)
+    (repo / ".memory").mkdir()
+    (repo / ".memory" / "index.md").write_text(iirc.INDEX_TEMPLATE)
+    (repo / ".memory" / "page.md").write_text("---\ntitle: P\nsummary: p\n---\nRun `memory doubt` first.\n")
+    (repo / ".claude").mkdir()
+    (repo / ".claude" / "memory.toml").write_text("[recall]\nsemantic_only = 0.30\n")
+    (repo / "CLAUDE.md").write_text("# Project\n\n## Memory <!-- memory -->\n\n`.memory/` holds what past sessions learned.\n")
+    _git(repo, "add", "."); _git(repo, "commit", "-qm", "old layout")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+    monkeypatch.setattr(iirc, "reindex", lambda **k: None)
+    iirc.main(["migrate"])
+    out = capsys.readouterr().out
+    assert "hooks off" not in out
+    iirc.set_root(repo)
+    assert iirc.CONFIG_ERROR is None and iirc.RECALL["semantic_only"] == 0.30
+    assert "`iirc find-suspect-pages`" in (repo / ".iirc" / "page.md").read_text()
+    assert ".claude/iirc.toml" in _git(repo, "diff", "--cached", "--name-only")
+    iirc.write_config_file({"semantic": False})
+    assert "hooks off" not in _brief(["doctor", "--brief", "--hook"], monkeypatch, capsys)

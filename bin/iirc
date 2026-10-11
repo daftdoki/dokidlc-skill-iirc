@@ -2768,6 +2768,16 @@ def cmd_migrate(args: argparse.Namespace) -> None:
             toml.write_text(new_text)
             done.append(f"{STORE_CONFIG}: project store path is .iirc")
             staged.append(STORE_CONFIG)
+        # the memory plugin's flat [recall] fails load_knobs, which leaves no store for the page loop below
+        try:
+            text = toml.read_text()
+            new_text, knob_notes = fixed_knob_text(text)
+        except tomllib.TOMLDecodeError:
+            new_text, knob_notes = text, []
+        if new_text != text:
+            toml.write_text(new_text)
+            done += [f"{STORE_CONFIG}: {n}" for n in knob_notes]
+            staged.append(STORE_CONFIG)
     claude_md = ROOT / "CLAUDE.md"
     if claude_md.is_file() and not claude_md.is_symlink():
         text = claude_md.read_text()
