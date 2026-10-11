@@ -124,7 +124,8 @@ iirc: 97 pages, semantic via 127.0.0.1:11434. Topics: claude-code 36, plugin 25,
 Warnings make it longer: store changes not committed, a start scan
 past 5 seconds, and one sentence when maintenance is due,
 `Maintenance is due (REASONS); run /iirc run-maintenance.` The reasons
-are 7 days and 5 sessions since the last run, suspect pages, store
+are 7 days and 5 sessions since the last run in a store with a page,
+suspect pages, store
 commits not pushed, near-duplicate pairs (at the model's duplicate
 distance or closer, 0.07 for nomic, unless the pair has different kinds
 and one links the other with `[[name]]`), and suggestion lines that

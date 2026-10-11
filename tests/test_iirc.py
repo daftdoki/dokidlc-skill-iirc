@@ -3901,7 +3901,7 @@ def _due(**counts):
 
 
 def test_maintenance_due_after_a_week_and_five_sessions(tmp_path, monkeypatch):
-    _project(tmp_path, monkeypatch)
+    _page(_project(tmp_path, monkeypatch), "a.md")
     assert _due() == []                                 # never run, no sessions yet
     _log([("start", f"s{i}", 1) for i in range(5)])
     assert _due() == ["no run in the last 30 days, 5 sessions"]
@@ -4064,6 +4064,7 @@ def test_doctor_ends_with_run_maintenance_when_due(tmp_path, monkeypatch, capsys
     out = capsys.readouterr().out
     assert out.rstrip().splitlines()[-1] == "run-maintenance is due: it settles the failures and notes above"
     assert out.count("near-duplicate pages") == 1                       # the pair is named once, as a note
+    _page(tmp_path / ".iirc", "far.md", summary="far away")
     _log([("start", f"s{i}", 1) for i in range(5)])
     with pytest.raises(SystemExit):
         iirc.main(["doctor"])
@@ -4461,3 +4462,11 @@ def test_run_maintenance_clears_the_timeouts_it_reported(tmp_path, monkeypatch, 
     _log([("timeout", "s3", -2 / 86400)])                               # two seconds after the run
     assert iirc.logged_counts()["timeouts"] == 1
 
+
+
+def test_maintenance_is_not_due_on_an_empty_store(tmp_path, monkeypatch):
+    field = _project(tmp_path, monkeypatch)
+    _log([("start", f"s{i}", 1) for i in range(6)])
+    assert _due() == []
+    _page(field, "a.md")
+    assert _due() == ["no run in the last 30 days, 6 sessions"]

@@ -31,7 +31,8 @@ card in the transcript; your reads do not count as the agent's.
 
 Run it about once a week while you use iirc; iirc tells you when it is
 due. Type `/iirc run-maintenance`, or say yes when the agent suggests
-it. It is due after 7 days and at least 5 sessions since the last run,
+it. It is due after 7 days and at least 5 sessions since the last run
+once the stores hold a page,
 or sooner when a page is suspect, a store commit is not pushed, a
 suggestion lookup timed out in the last 7 days and since the last run,
 or two pages are near-duplicates. When 10 sessions wait to be judged,

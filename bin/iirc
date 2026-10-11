@@ -4549,7 +4549,8 @@ def plural(n: int, word: str, many: str | None = None) -> str:
 
 def logged_counts(waiting_limit: int | None = WAITING_SESSIONS) -> dict:
     """What maintenance counts from the log, in one read of its last DUE_WINDOW_DAYS: the last run and the sessions
-    since, timed-out lookups since both, the last URL check, and sessions waiting to be judged, up to waiting_limit."""
+    since, timed-out lookups since both, the last URL check, sessions waiting to be judged, up to waiting_limit,
+    and the pages in the live stores."""
     now = time.time()
     rows = [r for r in read_log(days=DUE_WINDOW_DAYS) if r.get("repo") == str(ROOT)]
     at = lambda r: parse_ts(r.get("ts")) or 0
@@ -4561,6 +4562,7 @@ def logged_counts(waiting_limit: int | None = WAITING_SESSIONS) -> dict:
         "timeouts": sum(1 for r in rows if r["cmd"] == "timeout" and at(r) >= now - TIMEOUT_DAYS * 86400 and at(r) > (last or -math.inf)),
         "last_network": max((at(r) for r in rows if r["cmd"] == "doubt" and r.get("network")), default=None),
         "waiting": len(untuned_sessions(repo_sessions(rows), limit=waiting_limit)),
+        "pages": sum(len(list_pages(s.dir)) for s in live_stores()),
     }
 
 
@@ -4579,7 +4581,8 @@ def upkeep_items(c: dict) -> list[Upkeep]:
     for line in c.get("loose") or []:
         items.append(Upkeep("loose", line, "its loose files are outside the undo; clear the cause, then run again", False))
     last = c.get("last_run")
-    if c.get("sessions", 0) >= MAINTENANCE_SESSIONS and (last is None or now - last >= MAINTENANCE_DAYS * 86400):
+    # an empty store has nothing for a run to check
+    if c.get("pages") and c.get("sessions", 0) >= MAINTENANCE_SESSIONS and (last is None or now - last >= MAINTENANCE_DAYS * 86400):
         sessions = plural(c["sessions"], "session")
         detail = (f"no run in the last {DUE_WINDOW_DAYS} days, {sessions}" if last is None
                   else f"{plural(int((now - last) // 86400), 'day')} and {sessions} since the last run")
