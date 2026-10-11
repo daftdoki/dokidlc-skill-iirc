@@ -47,11 +47,11 @@ Sleep 500ms
 Enter
 Sleep 4s
 # the short card, then every number
-Type "/iirc"
+Type "/iirc demo"
 Sleep 500ms
 Enter
 Sleep 4s
-Type "/iirc status"
+Type "/iirc demo status"
 Sleep 500ms
 Enter
 Sleep 5s
