@@ -4562,3 +4562,25 @@ def test_readme_and_install_add_the_marketplace_the_same_way():
     for doc in ("README.md", "INSTALL.md"):
         adds = re.findall(r"marketplace add (\S+)", (ROOT / doc).read_text())
         assert adds and set(adds) == {url}, (doc, adds)
+
+
+@pytest.mark.parametrize("toml", ["[recall.foo]\nboth = 0.5\n", "recall = 1\n"])
+def test_migrate_stops_on_a_config_the_knob_fix_cannot_repair(tmp_path, monkeypatch, capsys, toml):
+    """A config error that survives the knob fix is printed, the pages are named as not rewritten, and no commit is suggested."""
+    monkeypatch.delenv("OLLAMA_HOST", raising=False)
+    repo = tmp_path / "repo"; repo.mkdir(); _repo(repo)
+    (repo / ".memory").mkdir()
+    (repo / ".memory" / "index.md").write_text(iirc.INDEX_TEMPLATE)
+    (repo / ".memory" / "page.md").write_text("---\ntitle: P\nsummary: p\n---\nRun `memory doubt` first.\n")
+    (repo / ".claude").mkdir()
+    (repo / ".claude" / "memory.toml").write_text(toml)
+    _git(repo, "add", "."); _git(repo, "commit", "-qm", "old layout")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+    monkeypatch.setattr(iirc, "reindex", lambda **k: None)
+    with pytest.raises(SystemExit) as exit:
+        iirc.main(["migrate"])
+    out = capsys.readouterr().out
+    assert exit.value.code == 1
+    assert ".claude/iirc.toml" in out and "pages were not rewritten" in out and "iirc migrate again" in out
+    assert "Suggested commit" not in out
+    assert "`memory doubt`" in (repo / ".iirc" / "page.md").read_text()

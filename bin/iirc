@@ -2807,6 +2807,15 @@ def cmd_migrate(args: argparse.Namespace) -> None:
             done.append(".claude/settings.json: memory@dokidlc is now iirc@dokidlc")
             staged.append(".claude/settings.json")
     set_root(ROOT)
+    if CONFIG_ERROR:
+        # no store loads, so no page was rewritten; a commit now would record a half-done migration,
+        # and the config that does not load stays out of the index
+        git_add([p for p in staged if p != STORE_CONFIG])
+        for line in done:
+            print(line)
+        print(f"iirc: {CONFIG_ERROR}")
+        print(f"The pages were not rewritten. Fix {STORE_CONFIG}, then run iirc migrate again.")
+        sys.exit(1)
     store = project_store()
     if store and store.dir.is_dir():
         rewritten = 0
