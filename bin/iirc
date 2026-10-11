@@ -3758,19 +3758,21 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         dirty = sum(uncommitted(s) for s in live_stores())
         if dirty:
             parts.append(f"{dirty} store change{'s' if dirty != 1 else ''} not committed.")
-        ahead = sum(unpushed(s) for s in live_stores())
         missing = [label for ok, label, _ in git_checks() if not ok]
         if missing:
             parts.append("Persistence: " + "; ".join(missing) + ".")
         if scan > SCAN_BUDGET:
             parts.append(f"The start scan took {scan:.1f} s over {cited} cited file{'' if cited == 1 else 's'}, past the {SCAN_BUDGET:g} s budget; tell the creator.")
-        try:   # a hook must never fail the session start
-            due = maintenance_due({**logged_counts(), "pages": n, "suspects": suspects, "ahead": ahead, "pairs": close_pairs(PAIR_BUDGET)})
-        except Exception:
-            due = []
-        if due and hook != "SubagentStart":
-            # one sentence for the person and the model; the skill walks through each reason.
-            # A subagent cannot run a slash command, so it gets none.
+        due = []
+        # a subagent cannot run a slash command, so its line names no maintenance, and nothing is counted for it
+        if hook != "SubagentStart":
+            try:   # a hook must never fail the session start
+                ahead = sum(unpushed(s) for s in live_stores())
+                due = maintenance_due({**logged_counts(), "pages": n, "suspects": suspects, "ahead": ahead, "pairs": close_pairs(PAIR_BUDGET)})
+            except Exception:
+                pass
+        if due:
+            # one sentence for the person and the model; the skill walks through each reason
             parts.append(f"Maintenance is due ({'; '.join(due)}); run /iirc run-maintenance.")
         if hook == "SessionStart":
             # the conditions this session's recall ran under, so an analysis compares like with like
