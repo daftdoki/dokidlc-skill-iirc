@@ -80,7 +80,7 @@ between pinned commits.
 Once per machine, in Claude Code:
 
 ```
-/plugin marketplace add daftdoki/dokidlc-plugins
+/plugin marketplace add git@github.com:daftdoki/dokidlc-plugins.git
 /plugin install iirc@dokidlc
 ```
 

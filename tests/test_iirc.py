@@ -4537,3 +4537,28 @@ def test_substring_setup_wins_over_an_exported_ollama_host(tmp_path, monkeypatch
     assert iirc.semantic_enabled() is False
     out = _brief(["doctor", "--brief", "--hook"], monkeypatch, capsys)
     assert "string search" in out and "to fix" not in out and "does not answer" not in out
+
+
+def test_write_prints_no_empty_line(tmp_path, monkeypatch, capsys):
+    """The tool's write prints nothing worth showing; iirc adds no blank line for it."""
+    _project(tmp_path, monkeypatch)
+    _write(monkeypatch, "a.md")
+    assert "" not in capsys.readouterr().out.split("\n")[:-1]
+
+
+def test_demo_doctor_matches_the_real_lines():
+    """/iirc demo doctor draws lines doctor prints: the hook's real limit and a remote store's real path shape."""
+    demo = (ROOT / "hooks" / "register.tsx").read_text()
+    demo = demo[demo.index("const DEMO_DOCTOR = ["):]
+    demo = demo[:demo.index("]")]
+    assert f"hook\\'s {iirc.RECALL_HOOK_TIMEOUT} s limit" in demo
+    path = re.search(r"store shared at (\S+)'", demo)[1]
+    assert re.fullmatch(r"~/\.local/share/dokidlc-iirc/stores/shared-[0-9a-f]{8}", path), path
+
+
+def test_readme_and_install_add_the_marketplace_the_same_way():
+    """INSTALL.md says the owner/repo shorthand fails on a fresh container, so the README uses the same full URL."""
+    url = "git@github.com:daftdoki/dokidlc-plugins.git"
+    for doc in ("README.md", "INSTALL.md"):
+        adds = re.findall(r"marketplace add (\S+)", (ROOT / doc).read_text())
+        assert adds and set(adds) == {url}, (doc, adds)

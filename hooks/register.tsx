@@ -101,13 +101,13 @@ const DEMO_HEALTH: IircHealth = {
 const DEMO_DOCTOR_RE = /^demo\s+doctor$/
 const DEMO_DOCTOR = [
   'ok  .claude/iirc.toml loads, so the hooks run',
-  'ok  suggest-pages finished inside the hook\'s 3 s limit in the last 7 days',
+  'ok  suggest-pages finished inside the hook\'s 5 s limit in the last 7 days',
   'ok  uv on PATH',
   'FAIL memoryfield-tool at 3e447e1  (iirc doctor --fix)',
   'ok  embedding endpoint http://127.0.0.1:11434 answers within 2 s (serving nomic-embed-text, 768 wide)',
   'ok  store project at .iirc',
   'ok  store project has no uncommitted changes',
-  'ok  store shared at ~/.local/share/iirc/shared',
+  'ok  store shared at ~/.local/share/dokidlc-iirc/stores/shared-3021cfb6',
   'ok  store shared tracks git@example.com:team/iirc-shared.git',
   'ok  store shared has nothing unpushed',
   'ok  store shared holds only pages and index.md',
@@ -645,6 +645,8 @@ export const register: Register = on => {
     return result
   })
 
+  // A throw in iirc's own work must never reach the tool call: before next, the hook's .catch runs the call;
+  // after it, the nudge's own .catch keeps the result
   on('tool.call', async ($, e, next) => {
     if (e.agentId === undefined) await update($, lastTool, () => e.tool_use_id)
     const result = await next(e)
@@ -654,11 +656,11 @@ export const register: Register = on => {
       if (COUNTS_RE.test(e.command)) refreshCounts($)
     }
     if (e.agentId === undefined && result.deny === undefined) {
-      const line = await takeCompactNudge($)
+      const line = await takeCompactNudge($).catch(() => null)
       if (line) return { ...result, context: [...(result.context ?? []), line] }
     }
     return result
-  })
+  }).catch(($, e, next) => (next.called ? undefined : next(e)))
 
   on('prompt.submit', async ($, e, next) => {
     const line = await takeCompactNudge($)

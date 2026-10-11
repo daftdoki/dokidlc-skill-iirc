@@ -2521,7 +2521,8 @@ def cmd_write(args: argparse.Namespace) -> None:
     proc = tool("write", "--force", args.page, stdin=render_page(fm, body), check=False, field=store.field)
     if proc.returncode:
         die(proc.stderr.strip() or "write failed")
-    print(proc.stdout.strip())
+    if proc.stdout.strip():
+        print(proc.stdout.strip())
     for _, w in shape_warnings(fm):
         print(f"iirc: warning: {w}", file=sys.stderr)
     log_event("write", page=page_label(store.name, args.page), kind=args.kind)
@@ -4860,7 +4861,7 @@ def main(argv: list[str] | None = None) -> None:
 
     p = sub.add_parser("doctor", help="check prerequisites; --fix installs them")
     p.add_argument("--fix", action="store_true")
-    p.add_argument("--brief", action="store_true", help="one line, no host probe; nothing if no field")
+    p.add_argument("--brief", action="store_true", help="one line; to name the search mode it probes the embedding hosts, 2 s each; nothing if no field")
     p.add_argument("--hook", action="store_true", help="with --brief: read the hook payload on stdin and frame the line for its event")
     p.add_argument("--health", action="store_true", help="JSON: suspect pages, and each store's pages, uncommitted changes, and unpushed commits")
     p.set_defaults(func=cmd_doctor, runs_with_bad_config=True, skips_format_check=True)
